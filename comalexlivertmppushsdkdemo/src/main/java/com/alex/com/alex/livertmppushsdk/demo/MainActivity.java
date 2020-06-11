@@ -1,5 +1,6 @@
 package com.alex.com.alex.livertmppushsdk.demo;
 
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -11,6 +12,8 @@ import java.util.Queue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.alex.com.alex.livertmppushsdk.demo.util.BitmapUtil;
+import com.alex.com.alex.livertmppushsdk.demo.util.Constants;
 import com.alex.livertmppushsdk.FdkAacEncode;
 import com.alex.livertmppushsdk.RtmpSession;
 import com.alex.livertmppushsdk.RtmpSessionManager;
@@ -18,6 +21,11 @@ import com.alex.livertmppushsdk.SWVideoEncoder;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.hardware.Camera.Size;
 import android.media.AudioFormat;
@@ -61,7 +69,7 @@ public class MainActivity extends Activity {
 	private final String LOG_TAG = "MainActivity";
 	private final boolean DEBUG_ENABLE = false;
 
-	private String _rtmpUrl = "rtmp://192.168.0.118:1935/live/12345";
+	private String _rtmpUrl = "rtmp://192.168.0.112:1935/live/12345";
 
 	PowerManager.WakeLock _wakeLock;
 	private DataOutputStream _outputStream = null;
@@ -221,6 +229,64 @@ public class MainActivity extends Activity {
 		return result;
 	}
 
+	private void saveYUV2Bitmap(byte[] data) {
+
+		ByteArrayOutputStream stream = null;
+		FileOutputStream fileOutputStream=null;
+		try {
+			//HEIGHT_DEF, WIDTH_DEF
+			YuvImage yuvImage = new YuvImage(data, ImageFormat.NV21, HEIGHT_DEF,WIDTH_DEF ,null);
+
+			if (yuvImage != null) {
+				stream = new ByteArrayOutputStream();
+				yuvImage.compressToJpeg(new Rect(0, 0, HEIGHT_DEF,WIDTH_DEF ), 100, stream);
+				Bitmap bmp = BitmapFactory.decodeByteArray(stream.toByteArray(), 0, stream.size());
+
+
+				String filePath = Constants.QD_PERSONAL_DIR;
+				String fileName = System.currentTimeMillis() + "";
+				FileOutputStream fos = null;// 文件输出流
+				// 判断是否有sdcard
+				String state = Environment.getExternalStorageState();
+				if (Environment.MEDIA_MOUNTED.equals(state)) {
+					File file = new File(filePath);
+					// 判断文件是否存在
+					if (!file.exists()) {
+						file.mkdirs();
+					}
+					// 判断是否有同名文件
+					File file2 = new File(filePath, fileName + ".jpg");
+					if (file2.exists()) {
+						file2 = new File(filePath, fileName + "_2" + ".jpg");
+					}
+					fileOutputStream = new FileOutputStream(file2);
+				}
+
+				try {
+					bmp.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
+					fileOutputStream.flush();
+					fileOutputStream.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (stream != null) {
+				try {
+					stream.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+
+
+	//一秒大概30帧，所以30帧截一次屏
+	private long count;
 	private Camera.PreviewCallback _previewCallback = new Camera.PreviewCallback() {
 
 		@Override
@@ -228,6 +294,7 @@ public class MainActivity extends Activity {
 			if (!_bStartFlag) {
 				return;
 			}
+
 
 			boolean bBackCameraFlag = true;
 
@@ -243,6 +310,30 @@ public class MainActivity extends Activity {
 			if (yuv420 == null) {
 				return;
 			}
+
+			//图片制作成bitmap
+			Log.i(LOG_TAG,"onPreviewFrame 回调,线程id："+Thread.currentThread().getId());
+			//final byte[] finalFram=YUV;
+			byte [] yuv90 = new byte[YUV.length];
+			_swEncH264.YUV420spRotate90(yuv90,YUV, WIDTH_DEF,HEIGHT_DEF);//旋转90度
+			final byte[] finalFram=YUV;
+			count++;
+			if(count%(30*60*5)==0){//每30次代表1秒，5min钟截取一次，截屏一次到sd卡
+				new Thread(){
+					@Override
+					public void run() {
+						try {
+							Log.i(LOG_TAG,"准备写入到磁盘,线程id："+Thread.currentThread().getId());
+							//BitmapUtil.writeToSDCard(finalFram);
+
+							saveYUV2Bitmap(finalFram);
+						} catch (Exception e) {
+							Log.e(LOG_TAG,"写入图片到磁盘出现异常："+e.getMessage());
+						}
+					}
+				}.start();
+			}
+			//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			if (!_bStartFlag) {
 				return;
 			}

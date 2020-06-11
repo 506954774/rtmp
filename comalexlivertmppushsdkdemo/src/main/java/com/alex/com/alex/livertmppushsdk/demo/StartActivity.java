@@ -28,7 +28,7 @@ public class StartActivity extends Activity {
         _rtmpUrlEditText = (EditText)findViewById(R.id.rtmpUrleditText);
         _startRtmpPushButton = (Button)findViewById(R.id.startRtmpButton);
 
-        _rtmpUrlEditText.setText("rtmp://192.168.0.118:1935/live/12345");
+        _rtmpUrlEditText.setText("rtmp://192.168.0.112:1935/live/12345");
 
         _startRtmpPushButton.setOnClickListener(_startRtmpPushOnClickedEvent);
     }
