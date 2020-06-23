@@ -8,6 +8,10 @@ import android.widget.EditText;
 import android.content.Intent;
 
 public class StartActivity extends Activity {
+
+
+    public static final String RMTP_URL="rtmp://192.168.0.115:1935/live/12345";
+
     public static final String RTMPURL_MESSAGE = "com.alex.com.alex.livertmppushsdk.demo.rtmpurl";
 
     private Button _startRtmpPushButton = null;
@@ -28,9 +32,16 @@ public class StartActivity extends Activity {
         _rtmpUrlEditText = (EditText)findViewById(R.id.rtmpUrleditText);
         _startRtmpPushButton = (Button)findViewById(R.id.startRtmpButton);
 
-        _rtmpUrlEditText.setText("rtmp://192.168.0.112:1935/live/12345");
+        _rtmpUrlEditText.setText(RMTP_URL);
 
         _startRtmpPushButton.setOnClickListener(_startRtmpPushOnClickedEvent);
+
+        findViewById(R.id.settings).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(new Intent(StartActivity.this,SettingActivity.class));
+            }
+        });
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {

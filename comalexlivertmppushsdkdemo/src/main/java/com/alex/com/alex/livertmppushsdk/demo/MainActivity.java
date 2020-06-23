@@ -69,7 +69,7 @@ public class MainActivity extends Activity {
 	private final String LOG_TAG = "MainActivity";
 	private final boolean DEBUG_ENABLE = false;
 
-	private String _rtmpUrl = "rtmp://192.168.0.112:1935/live/12345";
+	private String _rtmpUrl = StartActivity.RMTP_URL;
 
 	PowerManager.WakeLock _wakeLock;
 	private DataOutputStream _outputStream = null;
